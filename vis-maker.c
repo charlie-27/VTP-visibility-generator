@@ -7,7 +7,7 @@
 
 bool notCommented(const char *);
 void fixNumberCustomWidth(char *, int);
-unsigned char hex2int(char);
+unsigned int hex2int(char);
 
 const char *const MATCH_STRING = "R_key=";
 const char *const inputFileStr = "in.txt";
@@ -39,12 +39,12 @@ int main(int argc, char **argv)
 
     printf("input file: \"%s\"\noutput file: \"%s\"\n", inputFileStr, outputFileStr);
     // puts("start HR modbus address in HEX (default = 0x601):");
-    int counting_index = 0x1001;
+    // int counting_index = 0x1001;
     char line[MAX_LINE_LEN];
     // if (scanf("%x", &counting_index) == 0)
     //     scanf("%s", line);
     // getchar();
-    const int first_address = counting_index;
+    // const int first_address = counting_index;
 
     while (fgets(line, sizeof line, inFile))
     {
@@ -80,7 +80,7 @@ int main(int argc, char **argv)
                 address += hex2int(*strp);
                 strp++;
             }
-            address -= 0x600-0x1000;
+            address -= 0x600 - 0x1000;
             // printf("address is %x", address);
             // counting_index=address;
 
@@ -116,27 +116,33 @@ int main(int argc, char **argv)
             strcat(line, "\";\n");
             fputs(line, outFile);
 
+            // cerco se il parametro è nascosto
+            bool done = false;
+            bool hidden = false;
+            while (!done)
+            {
+                fgets(line, sizeof line, inFile);
+                if ((strp = strstr(line, "hidden=1")) && notCommented(line))
+                    hidden = true;
+
+                if ((strp = strstr(line, "<<<")) && notCommented(line))
+                    done = true;
+            }
+
+            if (hidden)
+            {
+                line[0] = '\0';
+                strcat(line, "hidden=1;\n");
+                fputs(line, outFile);
+            }
+
+            // ultima riga di chiusura
             line[0] = '\0';
             strcat(line, "<<<\n");
             // strcat(line, param_name);
             // strcat(line, "\";\n");
             fputs(line, outFile);
 
-            // strp += MATCH_STRING_LEN;
-
-            // int target_width = num_str_len;
-            // if (!variable_output_width)
-            //     target_width = 4;
-            // fixNumberCustomWidth(strp, target_width);
-
-            // for (int i = 0; i < target_width; i++)
-            // {
-            //     // aggiungo 0 all'inizio per avere lunghezza desiderata
-            //     if (i < target_width - num_str_len)
-            //         *strp++ = '0';
-            //     else
-            //         *strp++ = num_str[i + num_str_len - target_width];
-            // }
         }
     }
 
@@ -144,15 +150,15 @@ int main(int argc, char **argv)
     fclose(outFile);
 
     puts("DONE");
-    printf("first address: $%X\n", first_address);
-    printf("last address:  $%X\n", counting_index - 1);
-    printf("total: %d\n", counting_index - first_address);
+    // printf("first address: $%X\n", first_address);
+    // printf("last address:  $%X\n", counting_index - 1);
+    // printf("total: %d\n", counting_index - first_address);
     // getchar();
 
     return 0;
 }
 
-unsigned char hex2int(char c)
+unsigned int hex2int(char c)
 {
     if (c >= '0' && c <= '9')
         return c - '0';
