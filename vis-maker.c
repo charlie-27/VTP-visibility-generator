@@ -7,6 +7,7 @@
 
 bool notCommented(const char *);
 void fixNumberCustomWidth(char *, int);
+unsigned char hex2int(char);
 
 const char *const MATCH_STRING = "R_key=";
 const char *const inputFileStr = "in.txt";
@@ -56,22 +57,47 @@ int main(int argc, char **argv)
             *strp_end = '\0';
 
             strp += MATCH_STRING_LEN + 2;
+            // leggo nome parametro
             char param_name[50] = {'\0'};
             strcpy(param_name, strp);
 
             strcat(line, "_VISIBILITY;\n");
             fputs(line, outFile);
+
+            // devo leggere indirizzo MODBUS del parametro
+            bool found_address = false;
+            while (!found_address)
+            {
+                fgets(line, sizeof line, inFile);
+                if ((strp = strstr(line, "R_addr=$")) && notCommented(line))
+                    found_address = true;
+            }
+            strp += 8; // length of "R_addr=$"
+            unsigned int address = 0;
+            while (isxdigit(*strp))
+            {
+                address <<= 4; // *16
+                address += hex2int(*strp);
+                strp++;
+            }
+            address -= 0x600-0x1000;
+            // printf("address is %x", address);
+            // counting_index=address;
+
+            ////////////////
             line[0] = '\0';
             strcat(line, "R_var=MODBUS_HLDREG; R_addr=$");
 
             // converto counting_index to string
             char num_str[5];
-            /*int num_str_len = */sprintf(num_str, "%X", counting_index++);
+            // /*int num_str_len = */ sprintf(num_str, "%X", counting_index++);
+            sprintf(num_str, "%X", address);
             strcat(line, num_str);
             strcat(line, ";\n");
 
             fputs(line, outFile);
 
+            /////////////////
             line[0] = '\0';
             strcat(line, "Desc=\"LIDVisibility..");
             strcat(line, param_name);
@@ -124,6 +150,17 @@ int main(int argc, char **argv)
     // getchar();
 
     return 0;
+}
+
+unsigned char hex2int(char c)
+{
+    if (c >= '0' && c <= '9')
+        return c - '0';
+    if (c >= 'A' && c <= 'F')
+        return c - 'A' + 10;
+    if (c >= 'a' && c <= 'f')
+        return c - 'a' + 10;
+    return -1;
 }
 
 void fixNumberCustomWidth(char *p, int n)
